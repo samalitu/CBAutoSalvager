@@ -3,30 +3,29 @@ import pydirectinput
 import time
 
 def main():
-    SalvageTacks()
+    pydirectinput.mouseDown(x=1, y=1)
+    time.sleep(0.01)
+    pydirectinput.mouseUp(x=1, y=1)
+
+    WalkToHorseSeller()
 
 def LocateTacks():
-    #Locate Tacks
-
     oldX = 0
     oldY = 0
 
     for i in range(6):
         try:
-            x, y = pyautogui.locateCenterOnScreen("Tack.png", grayscale=True, confidence=0.9)
+            x, y = pyautogui.locateCenterOnScreen("Images/Tack.png", grayscale=True, confidence=0.9)
 
         except:
             print("Couldnt locate tack")
             break
         
         if oldX == x and oldY == y:
+            print("Old X: ", oldX, "Old Y:", oldY)
             break
 
         print("found item at: ", x, y)
-
-        pydirectinput.mouseDown(x=1, y=1)
-        time.sleep(0.01)
-        pydirectinput.mouseUp(x=1, y=1)
 
         pydirectinput.mouseDown(x=x, y=y, button='right')
         time.sleep(0.01)
@@ -35,41 +34,54 @@ def LocateTacks():
         oldX = x
         oldY = y
 
-def SalvageButton():
-        #Salvage
-        try:
-            x, y = pyautogui.locateCenterOnScreen("Salvage.png", grayscale=True, confidence=0.9)
+def PressButton(button):
+    time.sleep(0.2)
+    try:
+        x, y = pyautogui.locateCenterOnScreen("Images/" + button + ".png", grayscale=True, confidence=0.9)
 
-        except:
-            print("Couldnt locate salvage button")
+    except:
+        print("Couldnt locate " + button + " button")
+        return False
+
+    pydirectinput.mouseDown(x=x, y=y)
+    time.sleep(0.01)
+    pydirectinput.mouseUp(x=x, y=y)
+
+    return True  
+
+def WalkTo(Target):
+    status = True
+
+    pydirectinput.keyDown("tab")
+
+    if not PressButton(Target):
+        status =  False
+
+    pydirectinput.keyUp("tab")
+
+    return status
+
+def WalkToHorseSeller():
+    if not WalkTo("HorseSeller"):
+        return False
+
+
+    startTime = time.time()
+    while not PressButton("HorseSellerIntro"):
+        if time.time() - startTime > 20:
             return False
+        else:
+            time.sleep(1)
 
-        pydirectinput.mouseDown(x=x, y=y)
-        time.sleep(0.01)
-        pydirectinput.mouseUp(x=x, y=y)
+    BuyTacks()
 
-        return True
+    return True
 
-def YesButton():
-        #Say Yes
-        time.sleep(0.5) #TODO Tweak me
-        try:
-            x, y = pyautogui.locateCenterOnScreen("Yes.png", grayscale=True, confidence=0.9)
-
-        except:
-            print("Couldnt locate yes button")
-            return False
-
-        pydirectinput.mouseDown(x=x, y=y)
-        time.sleep(0.01)
-        pydirectinput.mouseUp(x=x, y=y)
-
-        return True
-
-def WaitForOkButton(startTime):
+def WaitForOkButton():
+    startTime = time.time()
     while True:
         try:
-            x, y = pyautogui.locateCenterOnScreen("Ok.png", grayscale=True, confidence=0.9)
+            x, y = pyautogui.locateCenterOnScreen("Images/Ok.png", grayscale=True, confidence=0.9)
             break
 
         except:
@@ -93,17 +105,57 @@ def SalvageTacks():
         LocateTacks()
 
         #Salvage
-        if not SalvageButton():
+        if not PressButton("Salvage"):
             return False
 
         #Say Yes
-        if not YesButton():
+        if not PressButton("Yes"):
             return False
 
         #Wait for OK
-        startTime = time.time()
-        if not WaitForOkButton(startTime):
+        if not WaitForOkButton():
             return False
+
+def BuyTack(x, y):
+    pydirectinput.mouseDown(x=x, y=y)
+    time.sleep(0.1)
+    pydirectinput.mouseUp(x=x, y=y)
+
+    if not PressButton("Buy"):
+        return False
+    
+    return True
+
+def BuyTacks():
+    CalibrationX = 500
+    CalibrationY = 30
+
+    time.sleep(1)
+
+    try:
+        x, y = pyautogui.locateCenterOnScreen("Images/Tack2.png", grayscale=True, confidence=0.9)
+    except:
+        print("Couldnt locate tack")
+
+    x = x + CalibrationX
+    y = y + CalibrationY
+
+    while True:
+        if not BuyTack(x, y):
+            break
+
+        try:
+            x, y = pyautogui.locateCenterOnScreen("Images/BagFull.png", grayscale=True, confidence=0.9)
+            print("Bag has been filled")
+            break
+        except:
+            print("Bag is not full yet")
+
+    if not PressButton("Ok"):
+        return False
+    
+    return True
+
 
 
 if __name__ == "__main__":
