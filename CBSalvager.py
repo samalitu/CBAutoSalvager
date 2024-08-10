@@ -1,41 +1,55 @@
-import pyautogui # type: ignore
+import pyautogui
 import pydirectinput
+from pynput import keyboard
 import time
 
+class Flag:
+    ended = False
+
 def main():
+    listener = keyboard.Listener(
+        on_press=KeyWatcher_onPress,
+        on_release=KeyWatcher_onRelease)
+    listener.start()
+    
     pydirectinput.mouseDown(x=1, y=1)
     time.sleep(0.01)
     pydirectinput.mouseUp(x=1, y=1)
 
-    WalkToHorseSeller()
+    while not Flag.ended:
+        WalkToSmith()
+        WalkToHorseSeller()
+
+    print("Ending my job")
 
 def LocateTacks():
     oldX = 0
     oldY = 0
 
     for i in range(6):
-        try:
-            x, y = pyautogui.locateCenterOnScreen("Images/Tack.png", grayscale=True, confidence=0.9)
+        if not Flag.ended:
+            try:
+                x, y = pyautogui.locateCenterOnScreen("Images/Tack.png", grayscale=True, confidence=0.9)
 
-        except:
-            print("Couldnt locate tack")
-            break
-        
-        if oldX == x and oldY == y:
-            print("Old X: ", oldX, "Old Y:", oldY)
-            break
+            except:
+                print("Couldnt locate tack")
+                break
+            
+            if oldX == x and oldY == y:
+                print("Old X: ", oldX, "Old Y:", oldY)
+                break
 
-        print("found item at: ", x, y)
+            print("found item at: ", x, y)
 
-        pydirectinput.mouseDown(x=x, y=y, button='right')
-        time.sleep(0.01)
-        pydirectinput.mouseUp(x=x, y=y, button='right')
+            pydirectinput.mouseDown(x=x, y=y, button='right')
+            time.sleep(0.01)
+            pydirectinput.mouseUp(x=x, y=y, button='right')
 
-        oldX = x
-        oldY = y
+            oldX = x
+            oldY = y
 
 def PressButton(button):
-    time.sleep(0.2)
+    time.sleep(0.3)
     try:
         x, y = pyautogui.locateCenterOnScreen("Images/" + button + ".png", grayscale=True, confidence=0.9)
 
@@ -61,6 +75,22 @@ def WalkTo(Target):
 
     return status
 
+def WalkToSmith():
+    if not WalkTo("Smith"):
+        return False
+
+
+    startTime = time.time()
+    while not PressButton("SmithIntro"):
+        if time.time() - startTime > 20 or Flag.ended:
+            return False
+        else:
+            time.sleep(1)
+
+    SalvageTacks()
+
+    return True
+
 def WalkToHorseSeller():
     if not WalkTo("HorseSeller"):
         return False
@@ -68,7 +98,7 @@ def WalkToHorseSeller():
 
     startTime = time.time()
     while not PressButton("HorseSellerIntro"):
-        if time.time() - startTime > 20:
+        if time.time() - startTime > 20 or Flag.ended:
             return False
         else:
             time.sleep(1)
@@ -99,7 +129,10 @@ def WaitForOkButton():
     return True
 
 def SalvageTacks():
-    while True:
+
+    time.sleep(1)
+
+    while not Flag.ended:
 
         #Find & Select Tacks
         LocateTacks()
@@ -140,7 +173,7 @@ def BuyTacks():
     x = x + CalibrationX
     y = y + CalibrationY
 
-    while True:
+    while not Flag.ended:
         if not BuyTack(x, y):
             break
 
@@ -156,7 +189,19 @@ def BuyTacks():
     
     return True
 
+def KeyWatcher_onPress(key):
+    try:
+        print('alphanumeric key {0} pressed'.format(key.char))
+    except AttributeError:
+        print('special key {0} pressed'.format(
+            key))
 
+def KeyWatcher_onRelease(key):
+    print('{0} released'.format(key))
+    
+    if key == keyboard.Key.f9:
+        Flag.ended = True    
+        return False
 
 if __name__ == "__main__":
     main()
